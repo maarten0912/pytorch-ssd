@@ -15,9 +15,11 @@ from torch.optim.lr_scheduler import CosineAnnealingLR, MultiStepLR
 from vision.utils.misc import str2bool, Timer, freeze_net_layers, store_labels
 from vision.ssd.ssd import MatchPrior
 from vision.ssd.vgg_ssd import create_vgg_ssd
+from vision.ssd.vgg_ssd_512 import create_vgg_ssd_512
 from vision.ssd.mobilenetv1_ssd import create_mobilenetv1_ssd
 from vision.ssd.mobilenetv1_ssd_lite import create_mobilenetv1_ssd_lite
 from vision.ssd.mobilenet_v2_ssd_lite import create_mobilenetv2_ssd_lite
+from vision.ssd.mobilenet_v2_ssd_lite_512 import create_mobilenetv2_ssd_lite_512
 from vision.ssd.squeezenet_ssd_lite import create_squeezenet_ssd_lite
 from vision.datasets.voc_dataset import VOCDataset
 from vision.datasets.open_images import OpenImagesDataset
@@ -41,7 +43,7 @@ parser.add_argument('--balance-data', action='store_true',
 
 # Params for network
 parser.add_argument('--net', default="mb1-ssd",
-                    help="The network architecture, it can be mb1-ssd, mb1-ssd-512, mb1-lite-ssd, mb2-ssd-lite, mb2-ssd-lite-512, vgg16-ssd or vgg16-ssd512.")
+                    help="The network architecture, it can be mb1-ssd, mb1-lite-ssd, mb2-ssd-lite, mb2-ssd-lite-512, vgg16-ssd or vgg16-ssd-512.")
 parser.add_argument('--freeze-base-net', action='store_true',
                     help="Freeze base net layers.")
 parser.add_argument('--freeze-net', action='store_true',
@@ -200,14 +202,11 @@ if __name__ == '__main__':
         create_net = create_vgg_ssd
         config = vgg_ssd_config
     elif args.net == 'vgg16-ssd-512':
-        create_net = create_vgg_ssd
+        create_net = create_vgg_ssd_512
         config = vgg_ssd_512_config
     elif args.net == 'mb1-ssd':
         create_net = create_mobilenetv1_ssd
         config = mobilenetv1_ssd_config
-    elif args.net == 'mb1-ssd-512':
-        create_net = create_mobilenetv1_ssd
-        config = mobilenetv1_ssd_512_config
     elif args.net == 'mb1-ssd-lite':
         create_net = create_mobilenetv1_ssd_lite
         config = mobilenetv1_ssd_config
@@ -218,7 +217,7 @@ if __name__ == '__main__':
         create_net = lambda num: create_mobilenetv2_ssd_lite(num, width_mult=args.mb2_width_mult)
         config = mobilenetv1_ssd_config
     elif args.net == 'mb2-ssd-lite-512':
-        create_net = lambda num: create_mobilenetv2_ssd_lite(num, width_mult=args.mb2_width_mult)
+        create_net = lambda num: create_mobilenetv2_ssd_lite_512(num, width_mult=args.mb2_width_mult)
         config = mobilenetv1_ssd_512_config
     else:
         logging.fatal("The net type is wrong.")

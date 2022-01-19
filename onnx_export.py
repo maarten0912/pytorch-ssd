@@ -8,10 +8,13 @@ import argparse
 import torch.onnx
 
 from vision.ssd.vgg_ssd import create_vgg_ssd
+from vision.ssd.vgg_ssd_512 import create_vgg_ssd_512
 from vision.ssd.mobilenetv1_ssd import create_mobilenetv1_ssd
 from vision.ssd.mobilenetv1_ssd_lite import create_mobilenetv1_ssd_lite
 from vision.ssd.squeezenet_ssd_lite import create_squeezenet_ssd_lite
+
 from vision.ssd.mobilenet_v2_ssd_lite import create_mobilenetv2_ssd_lite
+from vision.ssd.mobilenet_v2_ssd_lite_512 import create_mobilenetv2_ssd_lite_512
 
 from vision.ssd.config import vgg_ssd_config
 from vision.ssd.config import vgg_ssd_512_config
@@ -22,7 +25,7 @@ from vision.ssd.config import squeezenet_ssd_config
 
 # parse command line
 parser = argparse.ArgumentParser()
-parser.add_argument('--net', default="ssd-mobilenet", help="The network architecture, it can be mb1-ssd (aka ssd-mobilenet), mb1-lite-ssd, mb2-ssd-lite or vgg16-ssd.")
+parser.add_argument('--net', default="ssd-mobilenet", help="The network architecture, it can be mb1-ssd (aka ssd-mobilenet), mb1-lite-ssd, mb2-ssd-lite mb2-ssd-lite-512, vgg16-ssd or vgg16-ssd-512.")
 parser.add_argument('--input', type=str, default='', help="path to input PyTorch model (.pth checkpoint)")
 parser.add_argument('--output', type=str, default='', help="desired path of converted ONNX model (default: <NET>.onnx)")
 parser.add_argument('--labels', type=str, default='labels.txt', help="name of the class labels file")
@@ -58,7 +61,7 @@ if args.model_dir:
     # append the model dir (if needed)
     if not os.path.isfile(args.input):
 	    args.input = os.path.join(args.model_dir, args.input)
-    
+
     if not os.path.isfile(args.labels):
         args.labels = os.path.join(args.model_dir, args.labels)
 
@@ -74,7 +77,7 @@ if args.net == 'vgg16-ssd':
     net = create_vgg_ssd(len(class_names), is_test=True)
     config = vgg_ssd_config
 if args.net == 'vgg16-ssd-512':
-    net = create_vgg_ssd(len(class_names), is_test=True)
+    net = create_vgg_ssd_512(len(class_names), is_test=True)
     config = vgg_ssd_512_config
 elif args.net == 'mb1-ssd' or args.net == 'ssd-mobilenet':
     net = create_mobilenetv1_ssd(len(class_names), is_test=True)
@@ -82,14 +85,11 @@ elif args.net == 'mb1-ssd' or args.net == 'ssd-mobilenet':
 elif args.net == 'mb1-ssd-lite':
     net = create_mobilenetv1_ssd_lite(len(class_names), is_test=True)
     config = mobilenetv1_ssd_config
-elif args.net == 'mb1-ssd-lite-512':
-    net = create_mobilenetv1_ssd_lite(len(class_names), is_test=True)
-    config = mobilenetv1_ssd_512_config
 elif args.net == 'mb2-ssd-lite':
     net = create_mobilenetv2_ssd_lite(len(class_names), is_test=True)
     config = mobilenetv1_ssd_config
 elif args.net == 'mb2-ssd-lite-512':
-    net = create_mobilenetv2_ssd_lite(len(class_names), is_test=True)
+    net = create_mobilenetv2_ssd_lite_512(len(class_names), is_test=True)
     config = mobilenetv1_ssd_512_config
 elif args.net == 'sq-ssd-lite':
     net = create_squeezenet_ssd_lite(len(class_names), is_test=True)
