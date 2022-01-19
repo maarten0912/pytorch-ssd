@@ -7,6 +7,7 @@ import logging
 import argparse
 import itertools
 import torch
+import datetime
 
 from torch.utils.data import DataLoader, ConcatDataset
 from torch.optim.lr_scheduler import CosineAnnealingLR, MultiStepLR
@@ -22,7 +23,9 @@ from vision.datasets.voc_dataset import VOCDataset
 from vision.datasets.open_images import OpenImagesDataset
 from vision.nn.multibox_loss import MultiboxLoss
 from vision.ssd.config import vgg_ssd_config
+from vision.ssd.config import vgg_ssd_512_config
 from vision.ssd.config import mobilenetv1_ssd_config
+from vision.ssd.config import mobilenetv1_ssd_512_config
 from vision.ssd.config import squeezenet_ssd_config
 from vision.ssd.data_preprocessing import TrainAugmentation, TestTransform
 
@@ -38,7 +41,7 @@ parser.add_argument('--balance-data', action='store_true',
 
 # Params for network
 parser.add_argument('--net', default="mb1-ssd",
-                    help="The network architecture, it can be mb1-ssd, mb1-lite-ssd, mb2-ssd-lite or vgg16-ssd.")
+                    help="The network architecture, it can be mb1-ssd, mb1-ssd-512, mb1-lite-ssd, mb2-ssd-lite, mb2-ssd-lite-512, vgg16-ssd or vgg16-ssd512.")
 parser.add_argument('--freeze-base-net', action='store_true',
                     help="Freeze base net layers.")
 parser.add_argument('--freeze-net', action='store_true',
@@ -133,9 +136,18 @@ def train(loader, net, criterion, optimizer, device, debug_steps=100, epoch=-1):
             logging.info(
                 f"Epoch: {epoch}, Step: {i}/{len(loader)}, " +
                 f"Avg Loss: {avg_loss:.4f}, " +
-                f"Avg Regression Loss {avg_reg_loss:.4f}, " +
+                f"Avg Regression Loss: {avg_reg_loss:.4f}, " +
                 f"Avg Classification Loss: {avg_clf_loss:.4f}"
             )
+            with open(os.path.join(args.checkpoint_folder, "log.txt"),'a') as f:
+                f.write(
+                    f"T," +
+                    f"{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}," +
+                    f"Epoch: {epoch}, Step: {i}/{len(loader)}, " +
+                    f"Avg Loss: {avg_loss:.4f}, " +
+                    f"Avg Regression Loss: {avg_reg_loss:.4f}, " +
+                    f"Avg Classification Loss: {avg_clf_loss:.4f}\n"
+                )
             running_loss = 0.0
             running_regression_loss = 0.0
             running_classification_loss = 0.0
@@ -176,14 +188,26 @@ if __name__ == '__main__':
 
         if not os.path.exists(args.checkpoint_folder):
             os.mkdir(args.checkpoint_folder)
+        elif len(files := os.listdir(args.checkpoint_folder)) > 0:
+            if input(f'{args.checkpoint_folder} is not empty! Are you sure you want to overwrite? y/N: ').lower() not in ['y','yes']:
+                exit()
+            else:
+                for file in files:
+                    os.remove(os.path.join(args.checkpoint_folder,file))
             
     # select the network architecture and config     
     if args.net == 'vgg16-ssd':
         create_net = create_vgg_ssd
         config = vgg_ssd_config
+    elif args.net == 'vgg16-ssd-512':
+        create_net = create_vgg_ssd
+        config = vgg_ssd_512_config
     elif args.net == 'mb1-ssd':
         create_net = create_mobilenetv1_ssd
         config = mobilenetv1_ssd_config
+    elif args.net == 'mb1-ssd-512':
+        create_net = create_mobilenetv1_ssd
+        config = mobilenetv1_ssd_512_config
     elif args.net == 'mb1-ssd-lite':
         create_net = create_mobilenetv1_ssd_lite
         config = mobilenetv1_ssd_config
@@ -193,17 +217,34 @@ if __name__ == '__main__':
     elif args.net == 'mb2-ssd-lite':
         create_net = lambda num: create_mobilenetv2_ssd_lite(num, width_mult=args.mb2_width_mult)
         config = mobilenetv1_ssd_config
+    elif args.net == 'mb2-ssd-lite-512':
+        create_net = lambda num: create_mobilenetv2_ssd_lite(num, width_mult=args.mb2_width_mult)
+        config = mobilenetv1_ssd_512_config
     else:
         logging.fatal("The net type is wrong.")
         parser.print_help(sys.stderr)
         sys.exit(1)
         
+
+
+    logging.info("Model input image size:  {:d}x{:d}".format(config.image_size, config.image_size))
+
     # create data transforms for train/test/val
     train_transform = TrainAugmentation(config.image_size, config.image_mean, config.image_std)
     target_transform = MatchPrior(config.priors, config.center_variance,
                                   config.size_variance, 0.5)
 
     test_transform = TestTransform(config.image_size, config.image_mean, config.image_std)
+
+
+    # adding options file, showing the training options
+    options_file = os.path.join(args.checkpoint_folder, "options.txt")
+    with open(options_file, 'w') as f:
+        f.write(' '.join(sys.argv))
+        f.write('\n\n')
+        for arg in vars(args):
+            f.write(f'{arg}={getattr(args,arg)}\n')
+
 
     # load datasets (could be multiple)
     logging.info("Prepare training datasets.")
@@ -347,9 +388,18 @@ if __name__ == '__main__':
             logging.info(
                 f"Epoch: {epoch}, " +
                 f"Validation Loss: {val_loss:.4f}, " +
-                f"Validation Regression Loss {val_regression_loss:.4f}, " +
+                f"Validation Regression Loss: {val_regression_loss:.4f}, " +
                 f"Validation Classification Loss: {val_classification_loss:.4f}"
             )
+            with open(os.path.join(args.checkpoint_folder, "log.txt"),'a') as f:
+                f.write(
+                    f"V," +
+                    f"{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}," +
+                    f"Epoch: {epoch}, " +
+                    f"Validation Loss: {val_loss:.4f}, " +
+                    f"Validation Regression Loss: {val_regression_loss:.4f}, " +
+                    f"Validation Classification Loss: {val_classification_loss:.4f}\n"
+                )
             model_path = os.path.join(args.checkpoint_folder, f"{args.net}-Epoch-{epoch}-Loss-{val_loss}.pth")
             net.save(model_path)
             logging.info(f"Saved model {model_path}")

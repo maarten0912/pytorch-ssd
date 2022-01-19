@@ -1,3 +1,8 @@
 boto3
 pandas
 urllib3
+opencv-python
+torch
+torchvision
+numpy
+p-tqdm
