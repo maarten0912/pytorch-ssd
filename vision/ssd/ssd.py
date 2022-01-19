@@ -37,7 +37,7 @@ class SSD(nn.Module):
             self.config = config
             self.priors = config.priors.to(self.device)
             
-     def forward(self, x: torch.Tensor, get_feature_map_size: bool=False) -> Tuple[torch.Tensor, torch.Tensor]:
+    def forward(self, x: torch.Tensor, get_feature_map_size: bool=False) -> Tuple[torch.Tensor, torch.Tensor]:
         confidences = []
         locations = []
         start_layer_index = 0
@@ -84,7 +84,7 @@ class SSD(nn.Module):
         for layer in self.extras:
             x = layer(x)
             confidence, location = self.compute_header(header_index, x)
-           if get_feature_map_size:
+            if get_feature_map_size:
                 feature_maps.append(x.shape[-1])
             header_index += 1
             confidences.append(confidence)

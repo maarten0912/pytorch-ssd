@@ -19,16 +19,4 @@ specs = [
     SSDSpec(1, 300, SSDBoxSizes(285, 330), [2, 3])
 ]
 
-
 priors = generate_ssd_priors(specs, image_size)
-
-#print(' ')
-#print('SSD-Mobilenet-v1 priors:')
-#print(priors.shape)
-#print(priors)
-#print(' ')
-
-#import torch
-#torch.save(priors, 'mb1-ssd-priors.pt')
-
-#np.savetxt('mb1-ssd-priors.txt', priors.numpy())
